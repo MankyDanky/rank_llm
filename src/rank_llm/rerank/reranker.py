@@ -643,6 +643,7 @@ class Reranker:
                 or TEMPLATES / "gaggle_template.yaml",
                 device=kwargs.get("device", "cuda"),
                 batch_size=kwargs.get("batch_size", 16),
+                backend=kwargs.get("gaggle_backend", "transformers"),
             )
         elif "jina-reranker" in model_path.lower():
             from rank_llm.rerank.pointwise.jina_reranker import JinaReranker

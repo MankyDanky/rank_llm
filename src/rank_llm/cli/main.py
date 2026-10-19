@@ -108,6 +108,10 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
     rerank_parser = subparsers.add_parser("rerank", help="Run RankLLM reranking.")
     rerank_parser.add_argument("--model-path", required=True, dest="model_path")
+    rerank_parser.add_argument(
+        "--gaggle-backend", choices=("transformers", "modal"), default="transformers"
+    )
+    rerank_parser.add_argument("--device")
     rerank_parser.add_argument("--query", default="")
     rerank_parser.add_argument("--dataset")
     rerank_parser.add_argument("--requests-file", dest="requests_file")
@@ -601,6 +605,17 @@ def _validate_rerank_execution_args(args: argparse.Namespace) -> None:
 
 
 def _validate_rerank_backend_flags(args: argparse.Namespace, *, command: str) -> None:
+    if (
+        getattr(args, "gaggle_backend", "transformers") == "modal"
+        and "gaggle-reranker" not in args.model_path.lower()
+    ):
+        raise CLIError(
+            "--gaggle-backend modal requires a Gaggle reranker model",
+            exit_code=EXIT_CODES["invalid_arguments"],
+            status="validation_error",
+            error_code="invalid_arguments",
+            command=command,
+        )
     if getattr(args, "pointwise_vllm", False) and getattr(
         args, "listwise_vllm_with_openai_sdk", False
     ):
@@ -710,6 +725,8 @@ def _run_rerank_command(args: argparse.Namespace) -> CommandResponse:
             query_id=normalized["query_id"],
             candidates=normalized["candidates"],
             batch_size=args.batch_size,
+            gaggle_backend=args.gaggle_backend,
+            device=args.device,
             top_k_rerank=args.top_k_rerank,
             context_size=args.context_size,
             num_gpus=args.num_gpus,
@@ -758,6 +775,8 @@ def _run_rerank_command(args: argparse.Namespace) -> CommandResponse:
             model_path=args.model_path,
             query=args.query,
             batch_size=args.batch_size,
+            gaggle_backend=args.gaggle_backend,
+            device=args.device,
             dataset=args.dataset or "",
             requests_file=args.requests_file or "",
             qrels_file=args.qrels_file,

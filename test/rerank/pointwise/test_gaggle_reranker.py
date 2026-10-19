@@ -9,6 +9,31 @@ from rank_llm.rerank.reranker import Reranker
 
 
 class TestGaggleReranker(unittest.TestCase):
+    @patch("rank_llm.rerank.modal_handler.ModalHandler")
+    @patch("rank_llm.rerank.pointwise.gaggle_reranker.AutoConfig")
+    @patch("rank_llm.rerank.pointwise.gaggle_reranker.AutoTokenizer")
+    @patch(
+        "rank_llm.rerank.pointwise.gaggle_reranker.AutoModelForSequenceClassification"
+    )
+    def test_modal_backend(self, model_cls, tokenizer_cls, config_cls, handler_cls):
+        config = config_cls.from_pretrained.return_value
+        config.prompt_prefix_ids = [1, 2]
+        config.prompt_mid_ids = [3]
+        config.prompt_suffix_ids = [4]
+        config.max_query_len = 2
+        config.max_doc_len = 3
+        tokenizer = tokenizer_cls.from_pretrained.return_value
+        tokenizer.encode.side_effect = [[5, 6, 7], [8, 9]]
+        handler_cls.return_value.run_llm_batched.return_value = (["1.5"], [0], [1.5])
+
+        reranker = GaggleReranker(device="cpu", backend="modal")
+        prompt = {"query": "query", "passage": "passage"}
+
+        model_cls.from_pretrained.assert_not_called()
+        self.assertEqual(reranker.get_num_tokens(prompt), 8)
+        self.assertEqual(reranker.run_llm_batched([prompt]), (["1.5"], [0], [1.5]))
+        handler_cls.return_value.run_llm_batched.assert_called_once_with([prompt])
+
     def test_rejects_custom_prompt_template(self):
         with self.assertRaisesRegex(ValueError, "fixed prompt template"):
             GaggleReranker(prompt_template_path="custom.yaml")

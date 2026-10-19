@@ -52,6 +52,10 @@ local = [
     "torch>=2.6.0",
     "transformers>=5",
 ]
+modal = [
+    "modal>=1.6,<2",
+    "rank-llm[local]",
+]
 vllm = [
     "openai>=1.23.6",
     "rank-llm[local]",

@@ -32,6 +32,25 @@ cache = modal.Volume.from_name("gaggle-hf-cache", create_if_missing=True)
 app = modal.App("gaggle-rerank", image=image)
 
 
+@app.cls(gpu="A100-40GB", memory=32768, timeout=3600, volumes={"/cache": cache})
+class RankLLMModel:
+    model_path: str = modal.parameter()
+    batch_size: int = modal.parameter(default=16)
+
+    @modal.enter()
+    def load(self):
+        from rank_llm.rerank.reranker import Reranker
+
+        self.coordinator = Reranker.create_model_coordinator(
+            self.model_path, None, False, device="cuda", batch_size=self.batch_size
+        )
+        cache.commit()
+
+    @modal.method()
+    def run_llm_batched(self, prompts: list):
+        return self.coordinator.run_llm_batched(prompts)
+
+
 @app.function(gpu="A100-40GB", memory=32768, timeout=3600, volumes={"/cache": cache})
 def rerank(model_path: str, payload: dict, batch_size: int) -> dict:
     command = [

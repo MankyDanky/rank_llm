@@ -139,6 +139,8 @@ def run_mcp_rerank(
     candidates: list[dict[str, Any]],
     query_id: str | int = "",
     batch_size: int = 32,
+    gaggle_backend: str = "transformers",
+    device: str | None = None,
     top_k_rerank: int = -1,
     context_size: int = 4096,
     num_gpus: int = 1,
@@ -170,6 +172,8 @@ def run_mcp_rerank(
     kwargs = locals().copy()
     del kwargs["model_path"]
     del kwargs["reranker"]
+    if device is None:
+        del kwargs["device"]
     kwargs["prompt_template_path"] = prompt_template_path or None
     kwargs["few_shot_file"] = few_shot_file or None
     kwargs["base_url"] = base_url or None
@@ -236,6 +240,8 @@ def run_mcp_retrieve_and_rerank(
     model_path: str,
     query: str = "",
     batch_size: int = 32,
+    gaggle_backend: str = "transformers",
+    device: str | None = None,
     dataset: str = "",
     requests_file: str = "",
     qrels_file: str = "",
@@ -291,6 +297,7 @@ def run_mcp_retrieve_and_rerank(
         model_path=model_path,
         query=query,
         batch_size=batch_size,
+        gaggle_backend=gaggle_backend,
         dataset=dataset_or_none,
         retrieval_mode=retrieval_mode,
         requests_file=requests_file,
@@ -303,7 +310,7 @@ def run_mcp_retrieve_and_rerank(
         top_k_rerank=top_k_rerank,
         max_queries=max_queries_or_none,
         context_size=context_size,
-        device=device_resolver(),
+        device=device or device_resolver(),
         num_gpus=num_gpus,
         prompt_template_path=prompt_template_path or None,
         num_few_shot_examples=num_few_shot_examples,
